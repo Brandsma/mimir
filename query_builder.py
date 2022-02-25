@@ -18,6 +18,6 @@ def format_query(question: str, split_context: Optional[List[str]] = None, choic
   # context if available
   if split_context != None:
     for sentence in split_context:
-      query += (sentence + '. ')
+      query += sentence
   
   return query

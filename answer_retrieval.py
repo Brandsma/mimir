@@ -5,6 +5,8 @@ from collections import Counter
 from logger import setup_logger
 from query_builder import format_query
 from loader import Loader
+from nlp_util import split_sentences
+
 
 log = setup_logger(__name__)
 
@@ -19,11 +21,12 @@ def retrieve_answer(question: str, context: Optional[List[str]] = None, choices:
     #loader = Loader("Loading with object...", "That was fast!", 0.05).start()
     log.info(f"Starting to answer the question: {question}")
     # Prepare input data
-    split_context = None
-    if context != None:
-        split_context = context.split('.')
-        split_context.remove('')
+    split_context = []
 
+    if context != None:
+        for text in context:
+            split_context += split_sentences(text)
+            
     # Translate everything
     if language != 'en':
         log.info(f"Translating everything from {language} to en...")
