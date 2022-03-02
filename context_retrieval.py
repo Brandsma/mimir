@@ -1,8 +1,10 @@
 import torch
 from torch import Tensor
 import torch.nn.functional as F
-from transformers import AutoTokenizer, AutoModel
-
+from transformers import DPRQuestionEncoder, DPRQuestionEncoderTokenizer, DPRContextEncoder, DPRContextEncoderTokenizer
+from sentence_transformers import SentenceTransformer
+import torch
+torch.set_grad_enabled(False)
 
 def dot_score(a: Tensor, b: Tensor):
     """
@@ -22,44 +24,16 @@ def dot_score(a: Tensor, b: Tensor):
     # Compute the dot-product
     return torch.mm(a, b.transpose(0, 1))
 
+def retrieve_context(question, contexts, n=5):
+    #Load the model
+    model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
 
-#Mean Pooling - Average all the embeddings produced by the model
-def mean_pooling(model_output, attention_mask):
-    # First element of model_output contains all token embeddings
-    token_embeddings = model_output.last_hidden_state
-    # Expand the mask to the same size as the token embeddings to avoid indexing errors
-    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-    # Compute the mean of the token embeddings
-    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-
-
-#Encode text
-def encode(model, tokenizer, texts):
-    # Tokenize sentences
-    encoded_input = tokenizer(texts, padding=True, return_tensors='pt') # Your code here
-    # Compute token embeddings
-    with torch.no_grad():
-        model_output = model(**encoded_input)
-    # Perform pooling
-    embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
-    # Normalize embeddings
-    embeddings = F.normalize(embeddings, p=2, dim=1)
-    
-    return embeddings
-
-
-def retrieve_context(question, contexts, n=1):
-    # Load the model and tokenizer from HuggingFace Hub
-    model_name = "google/bigbird-roberta-base"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModel.from_pretrained(model_name)
-
-    #Encode query and contexts with the encode function
-    query_emb = encode(model, tokenizer, question)
-    contexts_emb = encode(model, tokenizer, contexts)
+    #Encode query and contexts using SentenceTransformer model.encode
+    query_emb = model.encode(question)
+    contexts_emb = model.encode(contexts)
 
     #Compute dot score between query and all contexts embeddings
-    scores = torch.mm(query_emb, contexts_emb.transpose(0, 1))[0].cpu().tolist()
+    scores = dot_score(query_emb, contexts_emb)[0].tolist()
 
     #Combine contexts & scores
     contexts_score_pairs = list(zip(contexts, scores))
@@ -67,8 +41,35 @@ def retrieve_context(question, contexts, n=1):
     #Sort by decreasing score
     contexts_score_pairs = sorted(contexts_score_pairs, key=lambda x: x[1], reverse=True)
 
-    #Return n contexts
-    return contexts_score_pairs[0:n][0]
+    #Output passages & scores
+    return contexts_score_pairs[0:n]
+
+def retrieve_context_FAISS(question, contexts, n=5):
+    # Load the model
+    ctx_encoder = DPRContextEncoder.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base")
+    ctx_tokenizer = DPRContextEncoderTokenizer.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base")
+
+    # Add FAISS indexing
+    contexts_emb = contexts.map(lambda example: {'embeddings': ctx_encoder(**ctx_tokenizer(example['text'], return_tensors="pt"))[0][0].numpy()})
+    contexts_emb.add_faiss_index(column='embeddings')
+
+    q_encoder = DPRQuestionEncoder.from_pretrained("facebook/dpr-question_encoder-single-nq-base")
+    q_tokenizer = DPRQuestionEncoderTokenizer.from_pretrained("facebook/dpr-question_encoder-single-nq-base")
+
+    query_emb = q_encoder(**q_tokenizer(question, return_tensors="pt"))[0][0].numpy()
+    scores, contexts = contexts_emb.get_nearest_examples('embeddings', query_emb, k=10)
+
+    #Compute dot score between query and all contexts embeddings
+    scores = dot_score(query_emb, contexts_emb)[0].tolist()
+
+    #Combine contexts & scores
+    contexts_score_pairs = list(zip(contexts, scores))
+
+    #Sort by decreasing score
+    contexts_score_pairs = sorted(contexts_score_pairs, key=lambda x: x[1], reverse=True)
+
+    #Output passages & scores
+    return contexts_score_pairs[0:n]
 
 if __name__=="__main__":
     retrieve_context()
