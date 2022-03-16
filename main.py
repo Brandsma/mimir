@@ -11,15 +11,6 @@ def analyze_contexts(contexts):
         print(f"{thing[1]} : {thing[0]}")
         print("")
 
-def chop_up_dem_contexts(contexts, max_sequence_length):
-    new_contexts = []
-    for context in contexts:
-        if len(context) <= max_sequence_length:
-            new_contexts.append(context)
-            continue
-        new_contexts.append(context[:max_sequence_length])
-        new_contexts.append(context[max_sequence_length:])
-    return new_contexts
 
 
 def answer_question_pipeline(question):
@@ -29,13 +20,9 @@ def answer_question_pipeline(question):
     source = data.retrieve_paragraphs()
     contexts = [x for x in source['train']['text']]
 
-    log.info("Sizing down sequence lengths that are too large...")
-    max_sequence_length = 512
-    sequence_lengths = [len(x) > max_sequence_length for x in contexts]
-    while any(sequence_lengths):
-        contexts = chop_up_dem_contexts(contexts, max_sequence_length)
-        sequence_lengths = [len(x) > max_sequence_length for x in contexts]
-
+    # log.info("Sizing down sequence lengths that are too large...")
+    # contexts, context_groupings = chop_up_dem_contexts(contexts, max_sequence_length)
+        
     # retrieve context from source text based on question
     log.info("Retrieving the most relevant context paragraphs...")
     context = retrieve_context(question, contexts, n=5)

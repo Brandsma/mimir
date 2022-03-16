@@ -4,6 +4,11 @@ import torch.nn.functional as F
 from transformers import DPRQuestionEncoder, DPRQuestionEncoderTokenizer, DPRContextEncoder, DPRContextEncoderTokenizer
 from sentence_transformers import SentenceTransformer
 import torch
+import numpy as np 
+from logger import setup_logger
+
+log = setup_logger(__name__)
+
 torch.set_grad_enabled(False)
 
 def dot_score(a: Tensor, b: Tensor):
@@ -24,13 +29,55 @@ def dot_score(a: Tensor, b: Tensor):
     # Compute the dot-product
     return torch.mm(a, b.transpose(0, 1))
 
+
+def chop_up_dem_contexts(contexts, max_sequence_length):
+    new_contexts = []
+    context_groupings = []
+    for idx, context in enumerate(contexts):
+        if len(context) <= max_sequence_length:
+            new_contexts.append(context)
+            continue
+        new_context, count = chop_up_the_context(context, max_sequence_length)
+        new_contexts += new_context
+        context_groupings.append((idx, idx+count))
+    return new_contexts, context_groupings
+
+def chop_up_the_context(context,  max_sequence_length):
+    new_context = []
+    if len(context) <= max_sequence_length:
+        log.warn("Reached unreachable code in 'chop up the context'")
+        return context
+    else :
+        i = max_sequence_length
+        count = 0
+        while i < len(context):
+            new_context.append(context[i - max_sequence_length:i])
+            max_idx = i + max_sequence_length if i + max_sequence_length < len(context) else len(context)
+            new_context.append(context[i:max_idx])
+            i += max_sequence_length
+            count += 1
+        return new_context, count
+
 def retrieve_context(question, contexts, n=5):
     #Load the model
+    # model = SentenceTransformer('allenai/longformer-base-4096')
     model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
+    max_sequence_length = 512
+
+    # Chop up dem contexts
+    chopped_up_contexts, context_groupings = chop_up_dem_contexts(contexts, max_sequence_length)
 
     #Encode query and contexts using SentenceTransformer model.encode
     query_emb = model.encode(question)
-    contexts_emb = model.encode(contexts)
+    contexts_emb = model.encode(chopped_up_contexts)
+
+    for context_grouping in context_groupings:
+        idx_start, idx_end = context_grouping
+        summed_emb = sum(contexts_emb[idx_start:idx_end + 1]) / (idx_end - idx_start + 1)
+
+        contexts_emb[idx_start] = summed_emb
+        for current_idx in range(idx_start+1, idx_end+1):
+            np.delete(contexts_emb, current_idx)
 
     #Compute dot score between query and all contexts embeddings
     scores = dot_score(query_emb, contexts_emb)[0].tolist()
