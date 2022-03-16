@@ -6,32 +6,44 @@ from logger import setup_logger
 log = setup_logger(__name__)
 
 def analyze_contexts(contexts):
-    print("--- Contexts")
-    print(contexts)
-    print("--- tpyes")
-    print([type(x) for x in contexts])
-    print("--- lens")
-    print([len(x) for x in contexts])
+    result = [(x, len(x)) for x in contexts if len(x) > 512]
+    for thing in result:
+        print(f"{thing[1]} : {thing[0]}")
+        print("")
+
+def chop_up_dem_contexts(contexts, max_sequence_length):
+    new_contexts = []
+    for context in contexts:
+        if len(context) <= max_sequence_length:
+            new_contexts.append(context)
+            continue
+        new_contexts.append(context[:max_sequence_length])
+        new_contexts.append(context[max_sequence_length:])
+    return new_contexts
+
 
 def answer_question_pipeline(question):
     # Input (raw) source text
     # Normal
+    log.info("Retrieving Dataset...")
     source = data.retrieve_paragraphs()
     contexts = [x for x in source['train']['text']]
-    # FAISS
-    #contexts = data.retrieve_paragraphs()
-    #print(contexts)
 
-    analyze_contexts(contexts)
-    exit()
+    log.info("Sizing down sequence lengths that are too large...")
+    max_sequence_length = 512
+    sequence_lengths = [len(x) > max_sequence_length for x in contexts]
+    while any(sequence_lengths):
+        contexts = chop_up_dem_contexts(contexts, max_sequence_length)
+        sequence_lengths = [len(x) > max_sequence_length for x in contexts]
 
     # retrieve context from source text based on question
+    log.info("Retrieving the most relevant context paragraphs...")
     context = retrieve_context(question, contexts, n=5)
-    print(context)
-    exit()
-    #context = [x[0] for x in context]
+    context = [x[0] for x in context]
+    print([len(x) for x in context if len(x) > 512])
 
     # Answer question with context
+    log.info("Trying to answer the question with the found context...")
     answer = retrieve_answer(question, context, language='en', num_generated_answers=5, num_correct_answers_required=3)
 
     # Return answer
@@ -41,7 +53,7 @@ def answer_question_pipeline(question):
 def main():
     # Input question 
     questions = data.retrieve_questions()
-    question = questions['test'][0]['question']
+    question = questions['test'][1]['question']
     print(f"trying the following example question: \n {question}")
     
 
