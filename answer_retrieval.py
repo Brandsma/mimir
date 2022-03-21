@@ -2,9 +2,9 @@ from typing import Optional, List
 from setuptools import setup
 from transformers import pipeline
 from collections import Counter
-from logger import setup_logger
+from util.logger import setup_logger
 from query_builder import format_query
-from loader import Loader
+from util.loader import Loader
 from nlp_util import split_sentences
 
 

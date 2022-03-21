@@ -1,16 +1,10 @@
-import data
 from answer_retrieval import retrieve_answer
-from context_retrieval import retrieve_context, retrieve_context_FAISS
-from logger import setup_logger
+from context_retrieval import retrieve_context
+from util.logger import setup_logger
+
+from pipeline import give_answer_to_question_pipeline
 
 log = setup_logger(__name__)
-
-def analyze_contexts(contexts):
-    result = [(x, len(x)) for x in contexts if len(x) > 512]
-    for thing in result:
-        print(f"{thing[1]} : {thing[0]}")
-        print("")
-
 
 
 def answer_question_pipeline(question):
@@ -39,13 +33,15 @@ def answer_question_pipeline(question):
     print(f"QUESTION: {question}\nANSWER: {answer}")
 
 def main():
+    give_answer_to_question_pipeline()
+
     # Input question 
-    questions = data.retrieve_questions()
-    question = questions['test'][0]['question']
-    print(f"trying the following example question: \n {question}")
+    # questions = data.retrieve_questions()
+    # question = questions['test'][1]['question']
+    # print(f"trying the following example question: \n {question}")
     
 
-    answer_question_pipeline(question)
+    # answer_question_pipeline(question)
 
     
 if __name__=="__main__":
