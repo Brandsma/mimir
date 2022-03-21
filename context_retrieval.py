@@ -35,11 +35,12 @@ def chop_up_dem_contexts(contexts, max_sequence_length):
     context_groupings = []
     for idx, context in enumerate(contexts):
         if len(context) <= max_sequence_length:
+            context_groupings.append((len(new_contexts), len(new_contexts)))
             new_contexts.append(context)
             continue
-        new_context, count = chop_up_the_context(context, max_sequence_length)
+        new_context = chop_up_the_context(context, max_sequence_length)
+        context_groupings.append((len(new_contexts), len(new_contexts)+(len(new_context)-1))) # TODO This idx+count makes no sense (what if two contexts)
         new_contexts += new_context
-        context_groupings.append((idx, idx+count))
     return new_contexts, context_groupings
 
 def chop_up_the_context(context,  max_sequence_length):
@@ -47,16 +48,23 @@ def chop_up_the_context(context,  max_sequence_length):
     if len(context) <= max_sequence_length:
         log.warn("Reached unreachable code in 'chop up the context'")
         return context
-    else :
+    else:
         i = max_sequence_length
-        count = 0
-        while i < len(context):
+        # Loop over all parts, and the remainder
+        while i < len(context) + max_sequence_length:
             new_context.append(context[i - max_sequence_length:i])
             max_idx = i + max_sequence_length if i + max_sequence_length < len(context) else len(context)
             new_context.append(context[i:max_idx])
             i += max_sequence_length
-            count += 1
-        return new_context, count
+
+        # NOTE: We chop up contexts all to a limit of 512. This means at the end of the context we can have a remainder
+        # This remainder can be any size from 1 to 512. Later when we average the embeddings, both embeddings are 
+        # weighted the same. This means that the smaller part is weighted advantageous. 
+        # E.G. we have a context of length 513, we have one part of length 512 and one part of length 1.
+        # When making the embeddings, combining the semantic vectors, the length of 1 is 50% of the averaged semantic vector.
+
+        return new_context
+
 
 def retrieve_context(question, contexts, n=5):
     #Load the model
@@ -71,16 +79,19 @@ def retrieve_context(question, contexts, n=5):
     query_emb = model.encode(question)
     contexts_emb = model.encode(chopped_up_contexts)
 
-    for context_grouping in context_groupings:
-        idx_start, idx_end = context_grouping
-        summed_emb = sum(contexts_emb[idx_start:idx_end + 1]) / (idx_end - idx_start + 1)
+    # Make larger sequence lengths objectively better
+    better_contexts_emb = []
+    for (idx_start, idx_end) in context_groupings:
+        if idx_start == idx_end:
+            better_contexts_emb.append(contexts_emb[idx_start])
+            continue
+            
+        summed_emb = sum(contexts_emb[idx_start:idx_end + 1]) / ((idx_end - idx_start) + 1)
 
-        contexts_emb[idx_start] = summed_emb
-        for current_idx in range(idx_start+1, idx_end+1):
-            np.delete(contexts_emb, current_idx)
+        better_contexts_emb.append(summed_emb)
 
     #Compute dot score between query and all contexts embeddings
-    scores = dot_score(query_emb, contexts_emb)[0].tolist()
+    scores = dot_score(query_emb, better_contexts_emb)[0].tolist()
 
     #Combine contexts & scores
     contexts_score_pairs = list(zip(contexts, scores))

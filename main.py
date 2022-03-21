@@ -28,6 +28,7 @@ def answer_question_pipeline(question):
     context = retrieve_context(question, contexts, n=5)
     context = [x[0] for x in context]
     print([len(x) for x in context if len(x) > 512])
+    print(context)
 
     # Answer question with context
     log.info("Trying to answer the question with the found context...")
@@ -40,7 +41,7 @@ def answer_question_pipeline(question):
 def main():
     # Input question 
     questions = data.retrieve_questions()
-    question = questions['test'][1]['question']
+    question = questions['test'][0]['question']
     print(f"trying the following example question: \n {question}")
     
 
