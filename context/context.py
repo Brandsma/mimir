@@ -14,7 +14,7 @@ torch.set_grad_enabled(False)
 
 class Context:
 
-    def __init__():
+    def __init__(self):
         pass
 
     def split_multiple_contexts(self, contexts, max_sequence_length):
@@ -83,6 +83,8 @@ class Context:
         # Then collaps the semantic vectors / embeddings of sharded context groups 
         #   to retrieve a single embedding for a context that was too long.
         contexts_emb = self.merge_split_context_embeddings(sharded_contexts_emb, context_groupings)
+
+        print(len(contexts_emb))
 
         #Compute dot score between query and all contexts embeddings
         scores = dot_score(query_emb, contexts_emb)[0].tolist()

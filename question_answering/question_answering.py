@@ -2,9 +2,8 @@ from typing import Optional, List
 from setuptools import setup
 from transformers import pipeline
 from collections import Counter
-from logger import setup_logger
-from query_builder import format_query
-from loader import Loader
+from util.logger import setup_logger
+from util.loader import Loader
 from nlp_util import split_sentences, determine_most_frequent
 
 log = setup_logger(__name__)
@@ -28,13 +27,34 @@ class QuestionAnswering:
         paraphrased_questions = paraphraser(question, num_return_sequences=num_generated_answers)
         return paraphrased_questions
 
+    def format_query(self, question: str, split_context: Optional[List[str]] = None, choices: Optional[List[str]] = None):
+        # One of the possible options:
+        # <QUESTION> \n (a) <CHOICE_A> (b) <CHOICE_B> ... \n <CONTEXT> 
+        
+        query = ""
+        # question
+        query += question
+        query += ' \n'
+
+        # choices if available
+        if choices != None:
+            for idx, choice in enumerate(choices):
+                query += f" ({chr(97 + idx)}) {choice}"
+                query += ' \n '
+
+        # context if available
+        if split_context != None:
+            for sentence in split_context:
+                query += sentence
+        return query
+
     def generate_answer(self, paraphrased_questions, split_context, choices):
         log.info("Attempting to answer questions...")
         answers = []
         for paraphrased_question in paraphrased_questions:
             generator = pipeline("text2text-generation",
                                 model="allenai/unifiedqa-t5-base")
-            query = format_query(
+            query = self.format_query(
                 paraphrased_question['generated_text'], split_context, choices)
             answers.append(generator(query)[0]['generated_text'])
         return answers
@@ -60,17 +80,3 @@ class QuestionAnswering:
         else:
             return "No common answer found"        
         
-        # Translate everything
-        # TODO MOVE THIS TO THE TRANSLATION MODULE
-        # if language != 'en':
-        #     log.info(f"Translating everything from {language} to en...")
-        #     nl_en_translator = pipeline(
-        #         "text2text-generation", model=f"Helsinki-NLP/opus-mt-{language}-en")
-        #     question = nl_en_translator(question)[0]['generated_text']
-        #     if choices != None:
-        #         for idx, choice in enumerate(choices):
-        #             choices[idx] = nl_en_translator(choice)[0]['generated_text']
-        #     if split_context != None:
-        #         for idx, context_sentence in enumerate(split_context):
-        #             split_context[idx] = nl_en_translator(context_sentence)[
-        #                 0]['generated_text']

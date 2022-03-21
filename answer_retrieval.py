@@ -3,7 +3,6 @@ from setuptools import setup
 from transformers import pipeline
 from collections import Counter
 from util.logger import setup_logger
-from query_builder import format_query
 from util.loader import Loader
 from nlp_util import split_sentences
 
