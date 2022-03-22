@@ -84,7 +84,8 @@ class Context:
         #   to retrieve a single embedding for a context that was too long.
         contexts_emb = self.merge_split_context_embeddings(sharded_contexts_emb, context_groupings)
 
-        print(len(contexts_emb))
+        print(len(query_emb), type(query_emb))
+        print(len(contexts_emb[0]), type(contexts_emb[0]))
 
         #Compute dot score between query and all contexts embeddings
         scores = dot_score(query_emb, contexts_emb)[0].tolist()
