@@ -1,7 +1,7 @@
 [default]
 # General
 max_sequence_length = 512
-question_number = 0
+question_number = 2
 
 # Context Retrieval
 number_of_retrieved_contexts = 5

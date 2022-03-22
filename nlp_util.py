@@ -22,7 +22,7 @@ def split_sentences(text):
             sentences.append(part)
     return sentences
 
-def determine_most_frequent(self, list):
+def determine_most_frequent(list):
     occurence_count = Counter(list)
     most_common = occurence_count.most_common(1)[0][0]
     return most_common, occurence_count[most_common]

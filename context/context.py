@@ -61,7 +61,7 @@ class Context:
                 contexts_emb.append(sharded_contexts_emb[idx_start])
                 continue
             # If the group is larger, average the semantic vectors and append in its place
-            summed_emb = sum(contexts_emb[idx_start:idx_end + 1]) / ((idx_end - idx_start) + 1)
+            summed_emb = sum(sharded_contexts_emb[idx_start:idx_end + 1]) / ((idx_end - idx_start) + 1)
             contexts_emb.append(summed_emb)
         return contexts_emb
 
@@ -83,9 +83,6 @@ class Context:
         # Then collaps the semantic vectors / embeddings of sharded context groups 
         #   to retrieve a single embedding for a context that was too long.
         contexts_emb = self.merge_split_context_embeddings(sharded_contexts_emb, context_groupings)
-
-        print(len(query_emb), type(query_emb))
-        print(len(contexts_emb[0]), type(contexts_emb[0]))
 
         #Compute dot score between query and all contexts embeddings
         scores = dot_score(query_emb, contexts_emb)[0].tolist()
