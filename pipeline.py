@@ -22,10 +22,6 @@ def give_answer_to_question_pipeline(question, context_list):
     question_answering = QuestionAnswering()
     ##
 
-    ## INPUT ##
-    question = io.get_question()
-    context_list = io.get_context_list()
-
     ## PREPROCESSING ##
     # TODO: automatically detect language
     translated_question = processing.translate(
