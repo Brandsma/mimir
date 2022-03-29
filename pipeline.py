@@ -3,6 +3,8 @@ from processing.processing import Processing
 from context.context import Context
 from question_answering.question_answering import QuestionAnswering
 from util.logger import setup_logger
+from summarize_text import summarize_text
+from question_generation import generate_question
 from dynaconf import settings
 
 log = setup_logger(__name__)
@@ -18,7 +20,8 @@ def give_answer_to_question_pipeline():
     ##
 
     ## INPUT ##
-    question, context_list = io.get_raw_question_and_contexts()
+    question = io.get_question()
+    context_list = io.get_context_list()
 
     ## PREPROCESSING ##
     # TODO: automatically detect language
@@ -50,5 +53,26 @@ def give_answer_to_question_pipeline():
 
 
 def generate_questions_pipeline():
-    pass
-    #
+    log.info("Starting 'generate questions' pipeline...")
+    ## SETUP ##
+    # Setup objects with their config
+    io = IO()
+    processing = Processing()
+    context = Context()
+    question_answering = QuestionAnswering()
+    ##
+
+    ## INPUT ##
+    _, context_list = io.get_raw_question_and_contexts()
+
+    print(context_list[0])
+
+    one_line_context = summarize_text(context_list[0])
+
+    print(one_line_context)
+
+    generated_question = generate_question(one_line_context)
+
+    print(generated_question)
+
+

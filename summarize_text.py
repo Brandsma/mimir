@@ -1,4 +1,4 @@
-from logger import setup_logger
+from util.logger import setup_logger
 from transformers import pipeline
 
 # Alt models
@@ -13,15 +13,15 @@ def summarize_text(context):
         log.error("text is not a string.")
 
     # Make models
-    summ = pipeline(model="gogamza/kobart-summarization") 
+    # summ = pipeline(model="gogamza/kobart-summarization") 
     one_line_summ = pipeline(model="snrspeaks/t5-one-line-summary")
 
     # Generate summary
-    summary = summ("summarize: " + context)[0]['generated_text']
+    # summary = summ("summarize: " + context)[0]['generated_text']
     one_line_summary = one_line_summ("summarize: " + context)[0]['generated_text']
 
-    
-    print(f"summary: {summary}\n one_line: {one_line_summary}")
+
+    # print(f"summary: {summary}\n one_line: {one_line_summary}")
     return one_line_summary
 
 

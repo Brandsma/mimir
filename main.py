@@ -1,5 +1,5 @@
 from util.logger import setup_logger
-from pipeline import give_answer_to_question_pipeline
+from pipeline import give_answer_to_question_pipeline, generate_questions_pipeline
 
 log = setup_logger(__name__)
 
@@ -30,7 +30,8 @@ log = setup_logger(__name__)
 #     print(f"QUESTION: {question}\nANSWER: {answer}")
 
 def main():
-    give_answer_to_question_pipeline()
+    # give_answer_to_question_pipeline()
+    generate_questions_pipeline()
 
     # Input question 
     # questions = data.retrieve_questions()

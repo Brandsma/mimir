@@ -1,4 +1,4 @@
-from logger import setup_logger
+from util.logger import setup_logger
 from transformers import pipeline
 
 log = setup_logger(__name__)
