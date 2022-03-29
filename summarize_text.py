@@ -3,25 +3,29 @@ from transformers import pipeline
 
 # Alt models
 # "pszemraj/bigbird-pegasus-large-K-booksum" -> https://huggingface.co/pszemraj/bigbird-pegasus-large-K-booksum
-# 
+# gogamza/kobart-summarization"
 
 log = setup_logger(__name__)
 
 
-def summarize_text(context):
-    if not isinstance(context, str):
-        log.error("text is not a string.")
+def summarize_text(text):
+    assert type(text) == str, "text is not a string"
 
-    # Make models
-    # summ = pipeline(model="gogamza/kobart-summarization") 
-    one_line_summ = pipeline(model="snrspeaks/t5-one-line-summary")
-
+    # Make model
+    summary_generator = pipeline("summarization", model="pszemraj/bigbird-pegasus-large-K-booksum") 
     # Generate summary
-    # summary = summ("summarize: " + context)[0]['generated_text']
-    one_line_summary = one_line_summ("summarize: " + context)[0]['generated_text']
+    summary = summary_generator("summarize: " + text)[0]['summary_text']
 
+    return summary
 
-    # print(f"summary: {summary}\n one_line: {one_line_summary}")
+def one_line_summary(text):
+    assert type(text) == str, "text is not a string"
+
+    # Make model
+    one_line_summary_generator = pipeline("summarization", model="snrspeaks/t5-one-line-summary")
+    # Generate summary
+    one_line_summary = one_line_summary_generator("summarize: " + text)[0]['summary_text']
+    print(one_line_summary)
     return one_line_summary
 
 
@@ -60,4 +64,4 @@ if __name__ == "__main__":
                 Overton-based applications have answered billions of queries in multiple languages and processed trillions of records reducing errors 1.7-2.9 times versus production systems.
                 """
 
-    log.info(summarize_text(abstract))
+    log.info(summarize_text(context))

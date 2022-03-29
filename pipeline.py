@@ -1,3 +1,4 @@
+from matplotlib.style import context
 from inp_out.io import IO
 from processing.processing import Processing
 from context.context import Context
@@ -6,6 +7,11 @@ from util.logger import setup_logger
 from summarize_text import summarize_text
 from question_generation import generate_question
 from dynaconf import settings
+from question_generation import generate_question
+from transformers import pipeline
+from summarize_text import summarize_text, one_line_summary
+from questiongenerator import QuestionGenerator, print_qa
+from data_pipeline import Data_pipeline
 
 log = setup_logger(__name__)
 
@@ -14,6 +20,7 @@ def give_answer_to_question_pipeline():
     ## SETUP ##
     # Setup objects with their config
     io = IO()
+    data = Data_pipeline()
     processing = Processing()
     context = Context()
     question_answering = QuestionAnswering()
@@ -28,6 +35,7 @@ def give_answer_to_question_pipeline():
     translated_question = processing.translate(question, from_lang=settings["input_language"], to_lang='en')
     translated_context_list = processing.translate(context_list, from_lang=settings["input_language"], to_lang='en')
 
+    #data.add("translation score", translation_score)
     ## CONTEXT ##
     most_relevant_context_score_pairs = context.retrieve_context(translated_question, translated_context_list, n=settings["number_of_retrieved_contexts"])
 
@@ -49,30 +57,54 @@ def give_answer_to_question_pipeline():
         "most_relevant_contexts": [x[0] for x in most_relevant_context_score_pairs], 
         "context_scores": [x[1] for x in most_relevant_context_score_pairs],
         }
+    data.add_qa_results(result_objects)
     io.print_results(result_objects)
 
-
 def generate_questions_pipeline():
-    log.info("Starting 'generate questions' pipeline...")
     ## SETUP ##
     # Setup objects with their config
     io = IO()
-    processing = Processing()
-    context = Context()
+    data = Data_pipeline()
     question_answering = QuestionAnswering()
     ##
 
-    ## INPUT ##
     _, context_list = io.get_raw_question_and_contexts()
 
-    print(context_list[0])
+    qg = QuestionGenerator()
 
-    one_line_context = summarize_text(context_list[0])
+    qa_list = qg.generate(
+        ' '.join(context_list[50:100]),
+        num_questions=10,
+        answer_style="sentences",
+        use_evaluator=True
+    )
+    print_qa(qa_list, show_answers=True)
 
-    print(one_line_context)
+def summarize_text_pipeline():
+    io = IO()
+    data = Data_pipeline()
+    paragraphs = io.get_paragraphs()
 
-    generated_question = generate_question(one_line_context)
+    for idx, text in enumerate(paragraphs):
+        if idx == 2:
+            break
+        ## Summarize text
+        summary = summarize_text(text)
 
-    print(generated_question)
+        ## Single line summary
+        one_line = one_line_summary(text)
 
+        ## Evaluation
+        ## ??
 
+        results_object = {
+            "raw_text": text,
+            "summary": summary,
+            "one_line": one_line
+        }
+        data.add_summarize_results(results_object)
+        io.print_results(results_object)
+    print(data.summarize_to_df())
+
+if __name__=="__main__":
+    generate_questions_pipeline()

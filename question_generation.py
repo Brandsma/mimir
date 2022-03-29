@@ -5,7 +5,9 @@ log = setup_logger(__name__)
 
 
 def generate_question(context):
-    if not isinstance(context, str): log.error("context is not a string.")
+    # TODO: According to the docs, this should also get an answer
+    # I.E. the input format should be "answer: %s  context: %s </s>"
+    assert type(context) == str, "text is not a string"
     qgen = pipeline(model = "mrm8488/t5-base-finetuned-question-generation-ap")
     return qgen("context: " + context)[0]['generated_text']
 
