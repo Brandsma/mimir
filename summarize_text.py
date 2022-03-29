@@ -20,7 +20,7 @@ def summarize_text(text):
 
 def one_line_summary(text):
     assert type(text) == str, "text is not a string"
-    
+
     # Make model
     one_line_summary_generator = pipeline("summarization", model="snrspeaks/t5-one-line-summary")
     # Generate summary
