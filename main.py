@@ -23,7 +23,7 @@ def evaluate_answering_pipeline():
     # TODO: Human input
     questions = io.get_all_questions()
     answers = io.get_all_answers()
-    paragraphs_related_to_answers = io.get_all_paragraphs_for_answers()
+    paragraphs_related_to_answers = io.get_all_true_paragraphs()
     answer_embeddings = embedding_creator.encode(answers)
     # TODO: Challenge, better clean up for the paragraphs
     context_list = io.get_paragraphs()

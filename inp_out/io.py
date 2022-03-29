@@ -29,6 +29,9 @@ class IO:
     def get_all_answers(self):
         return [x['answer'] for x in self.questions]
 
+    def get_all_true_paragraphs(self):
+        return [x['paragraph'] for x in self.questions]
+
     def print_results(self, results_object):
         pp = pprint.PrettyPrinter(indent=4, depth=4)
         pp.pprint(results_object)
