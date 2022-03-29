@@ -22,7 +22,7 @@ class QuestionAnswering:
         return split_context
 
     def generate_paraphrases(self, question, num_generated_answers):
-        log.info("Generating paraphrases of question...")
+        log.debug("Generating paraphrases of question...")
         paraphraser = pipeline("text2text-generation", model="tuner007/pegasus_paraphrase")
         paraphrased_questions = paraphraser(question, num_return_sequences=num_generated_answers)
         return paraphrased_questions
@@ -49,7 +49,7 @@ class QuestionAnswering:
         return query
 
     def generate_answer(self, paraphrased_questions, split_context, choices):
-        log.info("Attempting to answer questions...")
+        log.debug("Attempting to answer questions...")
         answers = []
         for paraphrased_question in paraphrased_questions:
             generator = pipeline("text2text-generation",
@@ -61,7 +61,7 @@ class QuestionAnswering:
 
     def retrieve_answer(self, question: str, context: Optional[List[str]] = None, choices: Optional[List[str]] = None, num_generated_answers=5, num_correct_answers_required=3):
 
-        log.info(f"Starting to answer the question: {question}")
+        log.debug(f"Starting to answer the question: {question}")
         
         # Prepare input data
         split_context = self.split_context(context)

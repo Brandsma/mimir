@@ -13,7 +13,7 @@ class Processing:
 
     def translate(self, text, from_lang, to_lang):
         if from_lang == to_lang:
-            log.info("Input and output language match, no translation required.")
+            log.debug("Input and output language match, no translation required.")
             return text
 
         log.info(f"Translating everything from {from_lang} to {to_lang}...")

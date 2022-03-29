@@ -16,6 +16,12 @@ class IO:
         
     def get_question(self, question_number):
         return self.questions[question_number]['question']
+    
+    def get_all_questions(self):
+        return [x['question'] for x in self.questions]
+
+    def get_all_answers(self):
+        return [x['answer'] for x in self.questions]
 
     def print_results(self, results_object):
         pp = pprint.PrettyPrinter(indent=4, depth=4)

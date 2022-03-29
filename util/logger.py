@@ -69,7 +69,7 @@ def setup_logger(name, level=logging.INFO):
     # Apply the handler to the logger
     log.addHandler(c_handler)
 
-    log.info("Logger %s has been initialized", name)
+    log.debug("Logger %s has been initialized", name)
 
     return log
 

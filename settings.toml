@@ -1,14 +1,14 @@
 [default]
 # General
 max_sequence_length = 512
-question_number = 2
+question_number = 4
 
 # Context Retrieval
 number_of_retrieved_contexts = 5
 
 # Question Answering
 num_generated_answers = 5
-num_correct_answers_required = 3
+num_correct_answers_required = 1
 
 # Processing 
 ## Translation
