@@ -3,6 +3,7 @@ from questiongenerator import QuestionGenerator
 from questiongenerator import print_qa
 
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -17,6 +18,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--text_file", type=str, required=True)
     parser.add_argument("--use_qa_eval", dest="use_qa_eval", action="store_true", default=True)
     return parser.parse_args()
+
 
 
 if __name__ == "__main__":

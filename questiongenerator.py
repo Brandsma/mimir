@@ -67,35 +67,7 @@ class QuestionGenerator:
 
         if subjects != []:
             print("Selecting QA on subjects...\n")
-
-            # Encode generated questions and subjects to embeddings
-            model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
-            question_embs = [model.encode(gq) for gq in generated_questions]
-            subj_embs = [model.encode(keyphrase) for keyphrase in subjects]
-
-            # Get the best score for each question from all subject pairings
-            best_score = [0.0] * len(question_embs)
-            related_subject = [None] * len(question_embs)
-            for q_idx, q_emb in enumerate(question_embs):
-                best_score = 0.0
-                for s_idx, subj_emb in enumerate(subj_embs):
-                    # Calculate -- TODO maybe remove the loop over subject embeds
-                    scores = dot_score(q_emb, subj_emb)[0].tolist()
-                    best = max(scores)
-                    if best > best_score[q_idx]:
-                        best_score[q_idx] = best
-                        related_subject[q_idx] = s_idx
-
-            # indices to subject names
-            related_subject = [subjects[subj_idx] for subj_idx in related_subject]
-            question_subject_relevance = [(generated_questions[idx], related_subject[idx], best_score[idx]) for idx in range(len(generated_questions))]
-            _ = [print(x) for x in question_subject_relevance]
-            # for all subjects
-            # dot score for question and subject qs
-            # dot score for answer and subject as
-            # keep highest score of qs, as
-            # keep highest score for all subjects
-            # rank qa 
+            questions_subject_relevance = get_question_subject_relevance(generated_questions, subjects)
 
         if use_evaluator:
             print("Evaluating QA pairs...\n")
@@ -113,12 +85,40 @@ class QuestionGenerator:
                     generated_questions, qg_answers, scores
                 )
 
+        # TODO USE the subject scores -- How do we filter? where?
+        # probably we just want to return the questions we already did, but now with the 
+        # subjects and the scores also attached, so we can later sort on them.
 
         else:
             print("Skipping evaluation step.\n")
             qa_list = self._get_all_qa_pairs(generated_questions, qg_answers)
 
         return qa_list
+
+    def get_question_subject_relevance(self, generated_questions, subjects):
+        # Encode generated questions and subjects to embeddings
+        model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
+        question_embs = [model.encode(gq) for gq in generated_questions]
+        subj_embs = [model.encode(keyphrase) for keyphrase in subjects]
+
+        # Get the best score for each question from all subject pairings
+        best_score = [0.0] * len(question_embs)
+        related_subject = [None] * len(question_embs)
+        for q_idx, q_emb in enumerate(question_embs):
+            for s_idx, subj_emb in enumerate(subj_embs):
+                # Calculate the relevance scores for the question and all subjects
+                score = dot_score(q_emb, subj_emb)[0].tolist()[0]
+                # keep the best score and the related subject
+                if score > best_score[q_idx]:
+                    best_score[q_idx] = score
+                    related_subject[q_idx] = s_idx
+
+        # indices to subject names
+        related_subject = [subjects[subj_idx] for subj_idx in related_subject]
+        # container the results
+        question_subject_relevance = zip(generated_questions, related_subject, best_score)
+        return question_subject_relevance
+
 
     def generate_qg_inputs(self, text: str, answer_style: str) -> Tuple[List[str], List[str]]:
         """Given a text, returns a list of model inputs and a list of corresponding answers.
