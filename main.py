@@ -2,11 +2,11 @@ from sentence_transformers import SentenceTransformer, util
 
 from data_pipeline import Data_pipeline
 from inp_out.io import IO
-from pipeline import (generate_questions_pipeline,
-                      give_answer_to_question_pipeline,
+from pipeline import (give_answer_to_question_pipeline,
                       summarize_text_pipeline)
 from util.loader import Loader
 from util.logger import setup_logger
+from dynaconf import settings
 
 log = setup_logger(__name__)
 
@@ -15,14 +15,14 @@ def evaluate_answering_pipeline():
     ## SETUP ##
     # Setup objects with their config
     data = Data_pipeline()
-    io = IO()
+    io = IO(settings["dataset_name"])
     embedding_creator = SentenceTransformer(
         'sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
 
     ## INPUT ##
     # TODO: Human input
     questions = io.get_all_questions()
-    answers = io.get_all_answers()
+    answers = io.get_all_true_answers()
     paragraphs_related_to_answers = io.get_all_true_paragraphs()
     answer_embeddings = embedding_creator.encode(answers)
     # TODO: Challenge, better clean up for the paragraphs
@@ -38,6 +38,7 @@ def evaluate_answering_pipeline():
                     question, context_list)
 
                 result_objects["true_answer"] = answers[idx]
+                result_objects["true_context"] = paragraphs_related_to_answers[idx]
 
                 result_objects[
                     "true_answer_similarity_score"] = util.dot_score(
@@ -59,6 +60,12 @@ def evaluate_answering_pipeline():
     # generate_questions_pipeline()
     # summarize_text_pipeline()
 
+def evaluate_generation_pipeline():
+    pass
+
+def main():
+    evaluate_answering_pipeline()
+    
 
 if __name__ == "__main__":
     main()

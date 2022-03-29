@@ -9,7 +9,9 @@ from transformers import (
     AutoModelForSeq2SeqLM,
     AutoModelForSequenceClassification,
 )
+from sentence_transformers import SentenceTransformer
 from typing import Any, List, Mapping, Tuple
+from nlp_util import dot_score
 
 
 class QuestionGenerator:
@@ -45,7 +47,8 @@ class QuestionGenerator:
         article: str,
         use_evaluator: bool = True,
         num_questions: bool = None,
-        answer_style: str = "all"
+        answer_style: str = "all",
+        subjects: List[str] = []
     ) -> List:
         """Takes an article and generates a set of question and answer pairs. If use_evaluator
         is True then QA pairs will be ranked and filtered based on their quality. answer_style
@@ -62,6 +65,38 @@ class QuestionGenerator:
         )
         assert len(generated_questions) == len(qg_answers), message
 
+        if subjects != []:
+            print("Selecting QA on subjects...\n")
+
+            # Encode generated questions and subjects to embeddings
+            model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
+            question_embs = [model.encode(gq) for gq in generated_questions]
+            subj_embs = [model.encode(keyphrase) for keyphrase in subjects]
+
+            # Get the best score for each question from all subject pairings
+            best_score = [0.0] * len(question_embs)
+            related_subject = [None] * len(question_embs)
+            for q_idx, q_emb in enumerate(question_embs):
+                best_score = 0.0
+                for s_idx, subj_emb in enumerate(subj_embs):
+                    # Calculate -- TODO maybe remove the loop over subject embeds
+                    scores = dot_score(q_emb, subj_emb)[0].tolist()
+                    best = max(scores)
+                    if best > best_score[q_idx]:
+                        best_score[q_idx] = best
+                        related_subject[q_idx] = s_idx
+
+            # indices to subject names
+            related_subject = [subjects[subj_idx] for subj_idx in related_subject]
+            question_subject_relevance = [(generated_questions[idx], related_subject[idx], best_score[idx]) for idx in range(len(generated_questions))]
+            _ = [print(x) for x in question_subject_relevance]
+            # for all subjects
+            # dot score for question and subject qs
+            # dot score for answer and subject as
+            # keep highest score of qs, as
+            # keep highest score for all subjects
+            # rank qa 
+
         if use_evaluator:
             print("Evaluating QA pairs...\n")
             encoded_qa_pairs = self.qa_evaluator.encode_qa_pairs(
@@ -77,6 +112,7 @@ class QuestionGenerator:
                 qa_list = self._get_ranked_qa_pairs(
                     generated_questions, qg_answers, scores
                 )
+
 
         else:
             print("Skipping evaluation step.\n")

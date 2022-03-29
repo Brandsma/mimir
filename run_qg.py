@@ -28,6 +28,7 @@ if __name__ == "__main__":
         text_file,
         num_questions=int(args.num_questions),
         answer_style=args.answer_style,
-        use_evaluator=args.use_qa_eval
+        use_evaluator=args.use_qa_eval,
+        subjects = ["Hiroshima", "children"]
     )
     print_qa(qa_list, show_answers=args.show_answers)

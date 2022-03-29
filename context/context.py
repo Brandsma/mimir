@@ -26,11 +26,11 @@ class Context:
         context_groupings = []
         for context in contexts:
             if len(context) <= max_sequence_length:
-                context_groupings.append((len(new_contexts), len(new_contexts)))
+                context_groupings.append((len(new_contexts), len(new_contexts), 0))
                 new_contexts.append(context)
                 continue
             new_context, remainder = self.split_context(context, max_sequence_length)
-            context_groupings.append((len(new_contexts), len(new_contexts)+(len(new_context)-1)))
+            context_groupings.append((len(new_contexts), len(new_contexts)+(len(new_context)-1), remainder))
             new_contexts += new_context
         return new_contexts, context_groupings
 
@@ -59,14 +59,15 @@ class Context:
     def merge_split_context_embeddings(self, sharded_contexts_emb, context_groupings):
         contexts_emb = []
         # TODO: Not all combinations have a remainder!! If they're not split, they never get a remainder.
-        for (idx_start, idx_end) in context_groupings:
+        for (idx_start, idx_end, remainder) in context_groupings:
             # If the group is of size 1, it was not split and we can append it in its place.
             if idx_start == idx_end:
                 contexts_emb.append(sharded_contexts_emb[idx_start])
                 continue
             # If the group is larger, average the semantic vectors and append in its place
-            summed_emb = sum(sharded_contexts_emb[idx_start:idx_end + 1]) / ((idx_end - idx_start) + 1)
-            contexts_emb.append(summed_emb)
+            weighted_average_embeddings = self.embeddings_weighted_average(sharded_contexts_emb[idx_start:idx_end + 1], remainder)
+            #summed_emb = sum(sharded_contexts_emb[idx_start:idx_end + 1]) / ((idx_end - idx_start) + 1)
+            contexts_emb.append(weighted_average_embeddings)
         return contexts_emb
 
     def embeddings_weighted_average(self, sharded_context_emb, remainder):

@@ -3,6 +3,10 @@
 max_sequence_length = 512
 question_number = 4
 
+# Dataset
+# dataset_name = "squad"
+dataset_name = "GroNLP/ik-nlp-22_slp"
+
 # Context Retrieval
 number_of_retrieved_contexts = 5
 
