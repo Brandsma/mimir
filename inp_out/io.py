@@ -1,8 +1,8 @@
 import pprint
 
 from datasets import load_dataset
-from dynaconf import settings
 from util.logger import setup_logger
+import random
 
 log = setup_logger(__name__)
 
@@ -18,7 +18,7 @@ class IO:
                                         name="paragraphs",
                                         split="train")
         elif dataset_name == "squad" or dataset_name == "squad_v2":
-            self.dataset = load_dataset(dataset_name, split="train[0:3500]")
+            self.dataset = load_dataset(dataset_name, split="train[0:3000]")
         else:
             log.error(f"Invalid dataset was given to IO. Should be one of [GroNLP/ik-nlp-22_slp, squad, squad_v2], but found {dataset_name}")
 
@@ -33,6 +33,14 @@ class IO:
         if self.dataset_name == "GroNLP/ik-nlp-22_slp":
             return self.questions[question_number]['question']
         elif self.dataset_name == "squad" or self.dataset_name == "squad_v2":
+            return self.dataset['question'][question_number]
+
+    def get_random_question(self):
+        if self.dataset_name == "GroNLP/ik-nlp-22_slp":
+            question_number = random.randint(0, len(self.questions))
+            return self.questions[question_number]['question']
+        elif self.dataset_name == "squad" or self.dataset_name == "squad_v2":
+            question_number = random.randint(0, len(self.dataset['question']))
             return self.dataset['question'][question_number]
 
     def get_all_questions(self):

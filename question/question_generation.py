@@ -11,9 +11,11 @@ from transformers import (
 )
 from sentence_transformers import SentenceTransformer
 from typing import Any, List, Mapping, Tuple
-from nlp_util import dot_score
+from util.nlp import dot_score
+from dynaconf import settings
 
 
+# Source: https://github.com/AMontgomerie/question_generator
 class QuestionGenerator:
     """A transformer-based NLP system for generating reading comprehension-style questions from
     texts. It can generate full sentence questions, multiple choice questions, or a mix of the
@@ -46,8 +48,8 @@ class QuestionGenerator:
         self,
         article: str,
         use_evaluator: bool = True,
-        num_questions: bool = None,
-        answer_style: str = "all",
+        num_questions: int = 10,
+        answer_style: str = "sentences",
         subjects: List[str] = []
     ) -> List:
         """Takes an article and generates a set of question and answer pairs. If use_evaluator
@@ -66,32 +68,55 @@ class QuestionGenerator:
         assert len(generated_questions) == len(qg_answers), message
 
         if subjects != []:
+            # Calculating relevance scores for the generated questions and subjects
             print("Selecting QA on subjects...\n")
-            questions_subject_relevance = get_question_subject_relevance(generated_questions, subjects)
+            questions, related_subject, relevance_scores = self.get_question_subject_relevance(generated_questions, subjects)
 
         if use_evaluator:
+            # Evaluate the question and answer quality
             print("Evaluating QA pairs...\n")
             encoded_qa_pairs = self.qa_evaluator.encode_qa_pairs(
                 generated_questions, qg_answers
             )
-            scores = self.qa_evaluator.get_scores(encoded_qa_pairs)
+            quality_scores = self.qa_evaluator.get_quality_scores(encoded_qa_pairs)
 
+        scores = None
+
+        # Get the list of questions to return for the different configuration possibilities
+        if subjects != [] and use_evaluator:
+            # Calculate the combined scores
+            weight = settings["quality_vs_relevance_weight"]
+            scores = self.combine_scores(quality_scores, relevance_scores, weight)
+        elif subjects != []:
+            # Use just the relevance score
+            scores = relevance_scores
+        elif use_evaluator:
+            # Use just the quality score
+            scores = quality_scores
+        if scores != None:
+            score_indices = {idx: value for idx, value in enumerate(scores)}
+            ranked_indices = [k for k, v in sorted(score_indices.items(), key=lambda item: item[1], reverse=True)]
+            # If we have calculated scores
             if num_questions:
+                # return a ranked list of a set amount of questions
                 qa_list = self._get_ranked_qa_pairs(
-                    generated_questions, qg_answers, scores, num_questions
+                    generated_questions, qg_answers, ranked_indices, num_questions
                 )
             else:
+                # return a ranked list of all questions
                 qa_list = self._get_ranked_qa_pairs(
-                    generated_questions, qg_answers, scores
+                    generated_questions, qg_answers, ranked_indices
                 )
+        else :
+            # return all generated questions
+            print("Skipping evaluation step.\n")
+            qa_list = self._get_all_qa_pairs(generated_questions, qg_answers)
+
 
         # TODO USE the subject scores -- How do we filter? where?
         # probably we just want to return the questions we already did, but now with the 
         # subjects and the scores also attached, so we can later sort on them.
 
-        else:
-            print("Skipping evaluation step.\n")
-            qa_list = self._get_all_qa_pairs(generated_questions, qg_answers)
 
         return qa_list
 
@@ -102,7 +127,7 @@ class QuestionGenerator:
         subj_embs = [model.encode(keyphrase) for keyphrase in subjects]
 
         # Get the best score for each question from all subject pairings
-        best_score = [0.0] * len(question_embs)
+        best_score = [-1.0] * len(question_embs)
         related_subject = [None] * len(question_embs)
         for q_idx, q_emb in enumerate(question_embs):
             for s_idx, subj_emb in enumerate(subj_embs):
@@ -116,8 +141,15 @@ class QuestionGenerator:
         # indices to subject names
         related_subject = [subjects[subj_idx] for subj_idx in related_subject]
         # container the results
-        question_subject_relevance = zip(generated_questions, related_subject, best_score)
-        return question_subject_relevance
+        #question_subject_relevance = zip(generated_questions, related_subject, best_score)
+        return generated_questions, related_subject, best_score
+
+    def combine_scores(self, q_score, r_score, weight):
+        """Calculate the combined weighted score of the questions quality and relevance to the subjects
+        The weight argument is a float on the range [0,1]. Higher is weighted more towards quality."""
+        assert len(r_score) == len(q_score), "Length of quality score and relevance score for question generation do not match."
+        combined_score = [((q_score[i] * weight) + (r_score[i] * (1.0 - weight))) / 2.0 for i in range(len(r_score))]
+        return combined_score
 
 
     def generate_qg_inputs(self, text: str, answer_style: str) -> Tuple[List[str], List[str]]:
@@ -399,6 +431,15 @@ class QAEvaluator:
         return [
             k for k, v in sorted(scores.items(), key=lambda item: item[1], reverse=True)
         ]
+
+    def get_quality_scores(self, encoded_qa_pairs: List[torch.tensor]) -> List[float]:
+        """Generates scores for a list of encoded QA pairs."""
+        scores = []
+
+        for i in range(len(encoded_qa_pairs)):
+            scores.append(self._evaluate_qa(encoded_qa_pairs[i]))
+
+        return scores
 
     def _encode_qa(self, question: str, answer: str) -> torch.tensor:
         """Concatenates a question and answer, and then tokenizes them. Returns a tensor of 

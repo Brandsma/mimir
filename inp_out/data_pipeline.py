@@ -1,6 +1,6 @@
 import pandas as pd
 
-class Data_pipeline:
+class DataManager:
 
     def __init__(self):
         self.qa_results = []

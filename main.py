@@ -1,71 +1,146 @@
-from sentence_transformers import SentenceTransformer, util
-
-from data_pipeline import Data_pipeline
 from inp_out.io import IO
-from pipeline import (give_answer_to_question_pipeline,
-                      summarize_text_pipeline)
-from util.loader import Loader
 from util.logger import setup_logger
+
+import argparse
+
 from dynaconf import settings
+from transformers import pipeline
+
+from context.context import ContextRetrieval
+from processing.translator import Translator
+from question.question_answering import QuestionAnswering
+from question.question_generation import QuestionGenerator, print_qa
 
 log = setup_logger(__name__)
 
+# Pipelines
 
-def evaluate_answering_pipeline():
+
+def give_answer_to_question_pipeline(question, context_list):
+    log.info("Starting 'give answer to question' pipeline...")
     ## SETUP ##
-    # Setup objects with their config
-    data = Data_pipeline()
-    io = IO(settings["dataset_name"])
-    embedding_creator = SentenceTransformer(
-        'sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
+    from_to_translator = Translator(
+        from_lang=settings["input_language"], to_lang="en")
+    to_from_translator = Translator(
+        from_lang="en", to_lang=settings["input_language"])
+    context = ContextRetrieval()
+    question_answering = QuestionAnswering()
+    ##
 
-    ## INPUT ##
-    # TODO: Human input
-    questions = io.get_all_questions()
-    answers = io.get_all_true_answers()
-    paragraphs_related_to_answers = io.get_all_true_paragraphs()
-    answer_embeddings = embedding_creator.encode(answers)
-    # TODO: Challenge, better clean up for the paragraphs
-    context_list = io.get_paragraphs()
+    ## PREPROCESSING ##
+    translated_question = from_to_translator.translate(question)
+    translated_context_list = from_to_translator.translate(context_list)
 
-    try:
-        with Loader("Answering Questions..."):
-            for idx, question in enumerate(questions):
-                log.info(
-                    f"Answering question '{question}' ({idx}/{len(questions)})..."
-                )
-                result_objects = give_answer_to_question_pipeline(
-                    question, context_list)
+    ## CONTEXT ##
+    most_relevant_context_score_pairs = context.retrieve_context(
+        translated_question,
+        translated_context_list,
+        n=settings["number_of_retrieved_contexts"])
 
-                result_objects["true_answer"] = answers[idx]
-                result_objects["true_context"] = paragraphs_related_to_answers[idx]
+    ## QUESTION ANSWERING ##
+    # TODO: Score for certainty about answer
+    answer = question_answering.retrieve_answer(
+        question, [x[0] for x in most_relevant_context_score_pairs],
+        num_generated_answers=settings["num_generated_answers"],
+        num_correct_answers_required=settings["num_correct_answers_required"])
 
-                result_objects[
-                    "true_answer_similarity_score"] = util.dot_score(
-                        embedding_creator.encode(
-                            result_objects["translated_answer"]),
-                        answer_embeddings[idx])
+    ## POSTPROCESSING ##
+    translated_answer = to_from_translator.translate(answer)
 
-                result_objects["true_context_similarity_score"] = util.dot_score(embedding_creator.encode(
-                    paragraphs_related_to_answers[idx]), embedding_creator.encode(result_objects["most_relevant_contexts"][0]))
-                
-                data.add_qa_results(result_objects)
-                io.print_results(result_objects)
-    except KeyboardInterrupt:
-        df = data.to_df()
-        df.to_csv("./first_interrupted_run.csv")
-        return
-    df = data.to_df()
-    df.to_csv("./first_run.csv")
-    # generate_questions_pipeline()
-    # summarize_text_pipeline()
+    qa_evaluator = pipeline("text-classification",
+                            model="iarfmoose/bert-base-cased-qa-evaluator")
 
-def evaluate_generation_pipeline():
-    pass
+    ## OUTPUT ##
+    result_objects = {
+        "translated_answer":
+        translated_answer,
+        "translated_question":
+        translated_question,
+        "question":
+        question,
+        "answer":
+        answer,
+        "qa_pair_score":
+        qa_evaluator(f"[CLS] {translated_question} [SEP] {answer} [SEP]"),
+        "most_relevant_contexts":
+        [x[0] for x in most_relevant_context_score_pairs],
+        "context_scores": [x[1] for x in most_relevant_context_score_pairs],
+    }
+
+    return result_objects
+
+
+def generate_questions_pipeline(text, subjects, answering_style):
+    qg = QuestionGenerator()
+    qa_list = qg.generate(text, num_questions=settings["num_generated_questions"], subjects=subjects, answer_style=answering_style)
+    print_qa(qa_list, show_answers=True)
+
+# Main
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Mimir - A Natural Language Study Assistant")
+    parser.add_argument(
+        "-m", "--mode",
+        default="answering",
+        type=str,
+        help="The mode in which mimir runs. Choose from ['interactive', 'answering', 'generation']",
+    )
+    # Question Generation
+    parser.add_argument("--text_file", type=str, help="The text file from which to extract question in 'generation' mode")
+    parser.add_argument("--subjects", nargs="+", help="The subjects that the question generation has to try and look for")
+    parser.add_argument(
+        "--answering_style",
+        default="sentences",
+        type=str,
+        help="The type of question-answer pairs the model generates. Choose from ['sentences', 'multiple_choice']",
+    )
+    
+    # Question Answering
+    parser.add_argument("--question", type=str, help="The question that has to be answered in 'answering' mode. If none, then a random question is selected.")
+    
+    # Parse a text that is inputted
+    #parser.add_argument("--use_nlp_dataset", dest="use_nlp_dataset", action="store_true", default=True, help="Whether or not to use the provided dataset")
+    return parser.parse_args()
 
 def main():
-    evaluate_answering_pipeline()
+    args = parse_args()
+    if args.mode == "interactive":
+        print("Running in interactive mode - TODO")
+        return
     
+    if args.mode == "answering":
+        io = IO()
+        question = args.question
+        if question is None:
+            log.info("No question is given, picking a random question from dataset...")
+            question = io.get_random_question()
+        result_object = give_answer_to_question_pipeline(question, io.get_paragraphs())
+        io.print_results(result_object)
+        
+
+
+    if args.mode == "generation":
+        if args.text_file is None:
+            log.error("Please provide a text file from which to generate the questions")
+            return
+        with open(args.text_file, 'r') as f:
+            text_file = f.read()
+        generate_questions_pipeline(text_file, args.subjects, args.answering_style)
+        
+    
+
+def old_main():
+    args = parse_args()
+    with open("./data/input/hiroshima_article.txt", 'r') as file:
+        text_file = file.read()
+    qg = QuestionGenerator()
+    qa_list = qg.generate(
+        text_file,
+        subjects=["Hiroshima", "children"]
+    )
+    print_qa(qa_list, show_answers=args.show_answers)
+
 
 if __name__ == "__main__":
     main()

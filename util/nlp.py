@@ -42,6 +42,5 @@ def dot_score(a: Tensor, b: Tensor):
         a = a.unsqueeze(0)
     if len(b.shape) == 1:
         b = b.unsqueeze(0)
-    print(a.shape, b.shape)
     # Compute the dot-product
     return torch.mm(a, b.transpose(0, 1))

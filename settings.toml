@@ -14,6 +14,10 @@ number_of_retrieved_contexts = 5
 num_generated_answers = 5
 num_correct_answers_required = 1
 
+# Question Generation
+quality_vs_relevance_weight = 0.5 # higher is quality, lower is relevance
+num_generated_questions = 10
+
 # Processing 
 ## Translation
 input_language = "en"

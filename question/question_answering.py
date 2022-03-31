@@ -1,18 +1,17 @@
 from typing import Optional, List
-from setuptools import setup
 from transformers import pipeline
-from collections import Counter
 from util.logger import setup_logger
-from util.loader import Loader
-from nlp_util import split_sentences, determine_most_frequent
+from util.nlp import split_sentences, determine_most_frequent
 
 log = setup_logger(__name__)
 
 
 class QuestionAnswering:
-
+    
     def __init__(self):
-        pass
+        self.answerer = pipeline("text2text-generation", model="allenai/unifiedqa-t5-base")
+        self.paraphraser = pipeline("text2text-generation", model="tuner007/pegasus_paraphrase")
+        
 
     def split_context(self, context):
         split_context = []
@@ -23,14 +22,10 @@ class QuestionAnswering:
 
     def generate_paraphrases(self, question, num_generated_answers):
         log.debug("Generating paraphrases of question...")
-        paraphraser = pipeline("text2text-generation", model="tuner007/pegasus_paraphrase")
-        paraphrased_questions = paraphraser(question, num_return_sequences=num_generated_answers)
+        paraphrased_questions = self.paraphraser(question, num_return_sequences=num_generated_answers)
         return paraphrased_questions
 
     def format_query(self, question: str, split_context: Optional[List[str]] = None, choices: Optional[List[str]] = None):
-        # One of the possible options:
-        # <QUESTION> \n (a) <CHOICE_A> (b) <CHOICE_B> ... \n <CONTEXT> 
-        
         query = ""
         # question
         query += question
@@ -52,11 +47,9 @@ class QuestionAnswering:
         log.debug("Attempting to answer questions...")
         answers = []
         for paraphrased_question in paraphrased_questions:
-            generator = pipeline("text2text-generation",
-                                model="allenai/unifiedqa-t5-base")
             query = self.format_query(
                 paraphrased_question['generated_text'], split_context, choices)
-            answers.append(generator(query)[0]['generated_text'])
+            answers.append(self.answerer(query)[0]['generated_text'])
         return answers
 
     def retrieve_answer(self, question: str, context: Optional[List[str]] = None, choices: Optional[List[str]] = None, num_generated_answers=5, num_correct_answers_required=3):

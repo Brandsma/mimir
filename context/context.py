@@ -1,12 +1,8 @@
 import torch
-from torch import Tensor
-import torch.nn.functional as F
-from transformers import DPRQuestionEncoder, DPRQuestionEncoderTokenizer, DPRContextEncoder, DPRContextEncoderTokenizer
 from sentence_transformers import SentenceTransformer
 import torch
-import numpy as np 
 from util.logger import setup_logger
-from nlp_util import dot_score
+from util.nlp import dot_score
 from dynaconf import settings
 
 
@@ -14,10 +10,10 @@ log = setup_logger(__name__)
 
 torch.set_grad_enabled(False)
 
-class Context:
+class ContextRetrieval:
 
     def __init__(self):
-        pass
+        self.embedder = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
 
     def split_multiple_contexts(self, contexts, max_sequence_length):
         # Some contexts have too many tokens to be parsed by the transformer, so we split them
@@ -90,17 +86,16 @@ class Context:
     def retrieve_context(self, question, contexts, n=5):
         #Load the model
         # model = SentenceTransformer('allenai/longformer-base-4096')
-        model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
         max_sequence_length = settings["max_sequence_length"]
 
         # Chop up dem contexts
         split_contexts, context_groupings = self.split_multiple_contexts(contexts, max_sequence_length)
 
         #Encode query and contexts using SentenceTransformer model.encode
-        query_emb = model.encode(question)
+        query_emb = self.embedder.encode(question)
         
         # First encode all context shards
-        sharded_contexts_emb = model.encode(split_contexts)
+        sharded_contexts_emb = self.embedder.encode(split_contexts)
 
         # Then collaps the semantic vectors / embeddings of sharded context groups 
         #   to retrieve a single embedding for a context that was too long.
