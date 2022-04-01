@@ -7,8 +7,27 @@ Mimir is capable of doing two distinct things:
 
 ## How to run
 
+### CLI
+The model can be run in two different modes, an 'answering' mode and a 'generation' mode.
+
+In order to answer a random question for the NLP dataset, run:
 ```bash
-python main.py
+python main.py --mode answering
+```
+
+In order to answer a specific question for the NLP dataset, run:
+```bash
+python main.py --mode answering --question "What does the Kleene star in Regex mean?" 
+```
+
+In order to generate a question from a text, run:
+```bash
+python main.py --mode generation --text_file ./_data/input/hiroshima_article.txt
+```
+
+In order to generate a question from a text filtered with subjects, run:
+```bash
+python main.py --mode generation --text_file ./_data/input/hiroshima_article.txt --subjects fire bomb hospital
 ```
 
 ## Architecture
@@ -44,12 +63,3 @@ There are several modules in this Python project. A short description is given f
 - I.E. Steegstra
 - A. Brandsma
 
-
-TODO Write about this
-List of features:
-- Question Generation 
-- Question Generation with subjects
-- Question Answering
-- Question translation
-- Auto-detect language for translation
-- Text Summarization
