@@ -49,6 +49,7 @@ class ContextRetrieval:
             # E.G. we have a context of length 513, we have one part of length 512 and one part of length 1.
             # When making the embeddings, combining the semantic vectors, the length of 1 is 50% of the averaged semantic vector.
             # remainder is the length of the last split, all other splits have the max_sequence_length
+            # NOTE: Update: We fixed this by taking the weighted average of the embeddings, weighted towards amount of tokens for the split.
             remainder = len(new_context[len(new_context) - 1])
         return new_context, remainder
 
@@ -67,7 +68,9 @@ class ContextRetrieval:
         return contexts_emb
 
     def embeddings_weighted_average(self, sharded_context_emb, remainder):
-        # TODO implement somewhere a little above. Need to get the remainder elegantly
+        """ To calculate an accurate semantic vector of context shards of different lengths
+        we sum and average the context embeddings, scaled to the amount of tokens included in that shard.
+        """
         shards = len(sharded_context_emb)
         # If there is one shard, we don't need to average
         if shards == 1:
