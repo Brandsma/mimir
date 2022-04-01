@@ -63,12 +63,3 @@ There are several modules in this Python project. A short description is given f
 - I.E. Steegstra
 - A. Brandsma
 
-
-TODO Write about this
-List of features:
-- Question Generation 
-- Question Generation with subjects
-- Question Answering
-- Question translation
-- Auto-detect language for translation
-- Text Summarization

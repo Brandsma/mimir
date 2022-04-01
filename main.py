@@ -86,8 +86,10 @@ def parse_args() -> argparse.Namespace:
         type=str,
         help="The mode in which mimir runs. Choose from ['interactive', 'answering', 'generation']",
     )
+    # General
+    parser.add_argument("--text_file", type=str, help="The text file from which questions are generated OR which is used as a context for question answering")
+
     # Question Generation
-    parser.add_argument("--text_file", type=str, help="The text file from which to extract question in 'generation' mode")
     parser.add_argument("--subjects", nargs="+", help="The subjects that the question generation has to try and look for")
     parser.add_argument(
         "--answering_style",
@@ -112,11 +114,20 @@ def main():
     if args.mode == "answering":
         io = IO()
         question = args.question
-        if question is None:
-            log.info("No question is given, picking a random question from dataset...")
-            question = io.get_random_question()
-        result_object = give_answer_to_question_pipeline(question, io.get_paragraphs())
-        io.print_results(result_object)
+        if args.text_file is None:
+            if question is None:
+                log.info("No question is given, picking a random question from dataset...")
+                question = io.get_random_question()
+            result_object = give_answer_to_question_pipeline(question, io.get_paragraphs())
+            io.print_results(result_object)
+        else:
+            if question is None:
+                log.error("When providing a text file, please also provide a questiorn")
+                return
+            with open(args.text_file, 'r') as f:
+                text_file = f.read()
+            result_object = give_answer_to_question_pipeline(question, text_file.split("\n\n"))
+            io.print_results(result_object)
         
 
 
