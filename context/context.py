@@ -58,7 +58,7 @@ class ContextRetrieval:
     def retrieve_context(self, question, n=5):
         # Check if embedded context exists
         if self.embedded_context == None:
-            print("ERROR: embed contexts before calling this function with .embed(context)")
+            log.error("ERROR: embed contexts before calling this function with .embed(context)")
 
         # Encode question
         query_emb = self.embedder.encode(question)

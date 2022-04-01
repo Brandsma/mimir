@@ -30,11 +30,11 @@ def give_answer_to_question_pipeline(question, context_list):
     ## PREPROCESSING ##
     translated_question = from_to_translator.translate(question)
     translated_context_list = from_to_translator.translate(context_list)
+    context.embed(translated_context_list)
 
     ## CONTEXT ##
     most_relevant_context_score_pairs = context.retrieve_context(
         translated_question,
-        translated_context_list,
         n=settings["number_of_retrieved_contexts"])
 
     ## QUESTION ANSWERING ##
@@ -95,10 +95,10 @@ def parse_args() -> argparse.Namespace:
         type=str,
         help="The type of question-answer pairs the model generates. Choose from ['sentences', 'multiple_choice']",
     )
-    
+
     # Question Answering
     parser.add_argument("--question", type=str, help="The question that has to be answered in 'answering' mode. If none, then a random question is selected.")
-    
+
     # Parse a text that is inputted
     #parser.add_argument("--use_nlp_dataset", dest="use_nlp_dataset", action="store_true", default=True, help="Whether or not to use the provided dataset")
     return parser.parse_args()
@@ -108,7 +108,7 @@ def main():
     if args.mode == "interactive":
         print("Running in interactive mode - TODO")
         return
-    
+
     if args.mode == "answering":
         io = IO()
         question = args.question
@@ -117,7 +117,7 @@ def main():
             question = io.get_random_question()
         result_object = give_answer_to_question_pipeline(question, io.get_paragraphs())
         io.print_results(result_object)
-        
+
 
 
     if args.mode == "generation":
@@ -127,8 +127,8 @@ def main():
         with open(args.text_file, 'r') as f:
             text_file = f.read()
         generate_questions_pipeline(text_file, args.subjects, args.answering_style)
-        
-    
+
+
 
 def old_main():
     args = parse_args()
