@@ -35,7 +35,8 @@ def give_answer_to_question_pipeline(question, context_list):
     ## CONTEXT ##
     most_relevant_context_score_pairs = context.retrieve_context(
         translated_question,
-        n=settings["number_of_retrieved_contexts"])
+        n=settings["number_of_retrieved_contexts"],
+        method="euclid")
 
     ## QUESTION ANSWERING ##
     # TODO: Score for certainty about answer

@@ -56,7 +56,14 @@ class ContextRetrieval:
             contexts_emb.append(summed_emb)
         return np.array(contexts_emb)
 
-    def retrieve_context(self, question, n=5):
+    def retrieve_context(self, question, n=5, method="euclid"):
+        """
+        Retrieves n contexts that are most similar to question thus most
+        likely to contain the answer
+        methods: ["dot", "euclid"]
+        euclid is mathematically the same as FAISS.
+        """
+
         # Check if embedded context exists
         if self.embedded_context is None:
             log.error("ERROR: embed contexts before calling this function with .embed(context)")
@@ -64,12 +71,14 @@ class ContextRetrieval:
         # Encode question
         query_emb = self.embedder.encode(question)
 
-        # Compute score between query and all contexts embeddings
-        # scores_ = dot_score(query_emb, self.embedded_context)[0].tolist()
-        scores = euclid_score(query_emb, self.embedded_context).tolist()
+        if method == "dot":
+            # Compute dot score between query and all contexts embeddings
+            scores = dot_score(query_emb, self.embedded_context)[0].tolist()
+            contexts_score_pairs = sorted(list(zip(self.contexts, scores)), key=lambda x: x[1], reverse=True)
+            return contexts_score_pairs[0:n]
 
-        # Pair with contexts and sort by decreasing score
-        contexts_score_pairs = sorted(list(zip(self.contexts, scores)), key=lambda x: x[1], reverse=False)
-
-        # Output passages & scores
-        return contexts_score_pairs[0:n]
+        if method == "euclid":
+            # Compute euclidean distances
+            scores = euclid_score(query_emb, self.embedded_context).tolist()
+            contexts_score_pairs = sorted(list(zip(self.contexts, scores)), key=lambda x: x[1], reverse=False)
+            return contexts_score_pairs[0:n]
