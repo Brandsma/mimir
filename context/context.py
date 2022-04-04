@@ -1,9 +1,10 @@
 import torch
 from sentence_transformers import SentenceTransformer
 from util.logger import setup_logger
-from util.nlp import dot_score
+from util.nlp import dot_score, euclid_score
 from dynaconf import settings
 import math
+import numpy as np
 
 
 log = setup_logger(__name__)
@@ -53,21 +54,22 @@ class ContextRetrieval:
         for (idx_start, idx_end) in context_groupings:
             summed_emb = sum(sharded_contexts_emb[idx_start:idx_end + 1]) / ((idx_end - idx_start) + 1)
             contexts_emb.append(summed_emb)
-        return contexts_emb
+        return np.array(contexts_emb)
 
     def retrieve_context(self, question, n=5):
         # Check if embedded context exists
-        if self.embedded_context == None:
+        if self.embedded_context is None:
             log.error("ERROR: embed contexts before calling this function with .embed(context)")
 
         # Encode question
         query_emb = self.embedder.encode(question)
 
-        # Compute dot score between query and all contexts embeddings
-        scores = dot_score(query_emb, self.embedded_context)[0].tolist()
+        # Compute score between query and all contexts embeddings
+        # scores_ = dot_score(query_emb, self.embedded_context)[0].tolist()
+        scores = euclid_score(query_emb, self.embedded_context).tolist()
 
         # Pair with contexts and sort by decreasing score
-        contexts_score_pairs = sorted(list(zip(self.contexts, scores)), key=lambda x: x[1], reverse=True)
+        contexts_score_pairs = sorted(list(zip(self.contexts, scores)), key=lambda x: x[1], reverse=False)
 
         # Output passages & scores
         return contexts_score_pairs[0:n]

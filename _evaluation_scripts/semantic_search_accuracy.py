@@ -35,5 +35,5 @@ for i, question in enumerate(questions[:trunc_idx]):
 
     if true_context_list[i] in best_context_list:
         counter += 1
-
+    # break
 print("percentage correct: ", counter/trunc_idx, " ", counter, "/", trunc_idx)

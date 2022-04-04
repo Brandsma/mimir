@@ -44,3 +44,19 @@ def dot_score(a: Tensor, b: Tensor):
         b = b.unsqueeze(0)
     # Compute the dot-product
     return torch.mm(a, b.transpose(0, 1))
+
+
+def euclid_score(a: Tensor, b: Tensor):
+    """
+    Computes the euclidean distance between a and all vectors in b.
+    Should be the same as FAISS
+    """
+    if not isinstance(a, torch.Tensor):
+        a = torch.tensor(a)
+    if not isinstance(b, torch.Tensor):
+        b = torch.tensor(b)
+    if len(b.shape) == 1:
+        b = b.unsqueeze(0)
+    # Compute the euclidean distance
+    m = torch.stack([a for _ in range(b.size()[0])])
+    return torch.sqrt(torch.sum(torch.square(torch.sub(m, b)), 1))
