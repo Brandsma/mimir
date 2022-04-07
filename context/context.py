@@ -6,7 +6,6 @@ from dynaconf import settings
 import math
 import numpy as np
 
-
 log = setup_logger(__name__)
 
 torch.set_grad_enabled(False)
@@ -15,7 +14,8 @@ torch.set_grad_enabled(False)
 class ContextRetrieval:
 
     def __init__(self):
-        self.embedder = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
+        # self.embedder = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
+        self.embedder = SentenceTransformer('all-MiniLM-L12-v2')  # better acc
         self.embedded_context = None
         self.contexts = None
 
