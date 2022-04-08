@@ -18,8 +18,8 @@ log = setup_logger(__name__)
 
 def give_answer_to_question_pipeline(question, context_list):
     log.info("Starting 'give answer to question' pipeline...")
-    qa = QuestionAnswering()
-    results = qa.answer_question(question, context_list)
+    qa = QuestionAnswering(context_list)
+    results = qa.answer_question(question)
     return results
 
 def generate_questions_pipeline(text, subjects, answering_style):
