@@ -35,6 +35,8 @@ python main.py --mode generation --text_file ./_data/input/hiroshima_article.txt
 ### Graphical Representation
 
 TODO
+In order to run the program with a graphical representation, run the program either from the command line with the argument GUI set to True, or run the command "python viewer.py".
+The GUI has limited functionality, but it is a little easier to interface with.
 
 ### Modules
 

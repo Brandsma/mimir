@@ -19,6 +19,10 @@ class Viewer():
         self.qg = None
         self.text = None
 
+    def run(self):
+        self.init()
+        self.display()
+
     def init(self):
         self.make_boxes()
         self.make_text_elements()

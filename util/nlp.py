@@ -2,6 +2,7 @@ from re import split
 from collections import Counter
 from torch import Tensor
 import torch
+from rouge import Rouge
 
 torch.set_grad_enabled(False)
 
@@ -60,3 +61,36 @@ def euclid_score(a: Tensor, b: Tensor):
     # Compute the euclidean distance
     m = torch.stack([a for _ in range(b.size()[0])])
     return torch.sqrt(torch.sum(torch.square(torch.sub(m, b)), 1))
+
+def edit_distance(a: str, b: str):
+    """
+    Computes the edit distance between two strings.
+    The edit distance is the amount of edits required
+    to transform string a to string b.
+    """
+    if len(a) > len(b):
+        difference = len(a) - len(b)
+        a[:difference]
+    elif len(b) > len(a):
+        difference = len(b) - len(a)
+        b[:difference]
+    else:
+        difference = 0
+
+    for i in range(len(a)):
+        if a[i] != b[i]:
+            difference += 1
+
+    return difference
+
+def rouge_l(a: str, b:str):
+    """
+    Calculates the ROUGE_L score. 
+    The ROUGE_L score measures the longest common subsequence between two strings.
+    Scores is a dictionary with the F1 score, precision and recall 
+    for keys 'f','p' and 'r' respectively.
+    Only the F1 score is returned. 
+    """
+    rouge = Rouge()
+    scores = rouge.get_scores(a,b)
+    return scores['rouge-l']['f']

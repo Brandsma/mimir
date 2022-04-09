@@ -1,4 +1,6 @@
 from inp_out.io import IO
+from mimir.installer.installer import install_required_packages
+from mimir.viewer import Viewer
 from util.logger import setup_logger
 
 import argparse
@@ -53,6 +55,20 @@ def parse_args() -> argparse.Namespace:
     # Question Answering
     parser.add_argument("--question", type=str, help="The question that has to be answered in 'answering' mode. If none, then a random question is selected.")
 
+    # Installer
+    parser.add_argument(
+        "-i", "--installer", 
+        action = "store_true",
+        help="Run with this argument to install all required packages."
+    )
+
+    # GUI
+    parser.add_argument(
+        "-g", "--GUI", 
+        action = "store_true",
+        help="Run the program with a (limited usability) GUI."
+    )
+
     # Parse a text that is inputted
     #parser.add_argument("--use_nlp_dataset", dest="use_nlp_dataset", action="store_true", default=True, help="Whether or not to use the provided dataset")
     return parser.parse_args()
@@ -61,6 +77,14 @@ def main():
     args = parse_args()
     if args.mode == "interactive":
         print("Running in interactive mode - TODO")
+        return
+
+    if args.installer:
+        install_required_packages()
+
+    if args.GUI:
+        v = Viewer()
+        v.run()
         return
 
     if args.mode == "answering":
