@@ -52,7 +52,7 @@ def evaluate_answering_pipeline():
                 result_objects["true_context_similarity_score"] = util.dot_score(embedding_creator.encode(
                     paragraphs_related_to_answers[idx]), embedding_creator.encode(result_objects["most_relevant_contexts"][0]))
                 
-                result_objects["true_answer_edit_distance"] = edit_distance(result_objects["translated_answer"], result_objects["true_answer"])
+                #result_objects["true_answer_edit_distance"] = edit_distance(result_objects["translated_answer"], result_objects["true_answer"])
                 result_objects["true_answer_ROUGE_L"] = rouge_l(result_objects["translated_answer"], result_objects["true_answer"])
 
                 data.add_qa_results(result_objects)
