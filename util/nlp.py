@@ -93,4 +93,4 @@ def rouge_l(a: str, b:str):
     """
     rouge = Rouge()
     scores = rouge.get_scores(a,b)
-    return scores['rouge-l']['f']
+    return scores[0]['rouge-l']['f']
