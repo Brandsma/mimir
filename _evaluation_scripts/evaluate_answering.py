@@ -6,7 +6,8 @@ from sentence_transformers import SentenceTransformer, util
 
 from inp_out.data_pipeline import DataManager
 from inp_out.io import IO
-from pipeline import give_answer_to_question_pipeline
+# from pipeline import give_answer_to_question_pipeline
+from question.question_answering import QuestionAnswering
 from util.loader import Loader
 from dynaconf import settings
 from util.logger import setup_logger
@@ -28,6 +29,8 @@ def evaluate_answering_pipeline():
     answer_embeddings = embedding_creator.encode(answers)
     # TODO: Challenge, better clean up for the paragraphs
     context_list = io.get_paragraphs()
+    qa = QuestionAnswering(context_list)
+
 
     try:
         with Loader("Answering Questions..."):
@@ -35,8 +38,7 @@ def evaluate_answering_pipeline():
                 log.info(
                     f"Answering question '{question}' ({idx}/{len(questions)})..."
                 )
-                result_objects = give_answer_to_question_pipeline(
-                    question, context_list)
+                result_objects = qa.answer_question(question)
 
                 result_objects["true_answer"] = answers[idx]
                 result_objects["true_context"] = paragraphs_related_to_answers[idx]
