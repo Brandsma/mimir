@@ -1,6 +1,6 @@
 from inp_out.io import IO
-from mimir.installer.installer import install_required_packages
-from mimir.viewer import Viewer
+from installer.installer import install_required_packages
+from viewer import Viewer
 from util.logger import setup_logger
 
 import argparse
