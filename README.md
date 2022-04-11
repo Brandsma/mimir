@@ -7,6 +7,13 @@ Mimir is capable of doing two distinct things:
 
 ## How to run
 
+Before running the program we recommend first running the installer, which will install all required packages. Run the installer by running:
+
+```bash
+python installer.py
+```
+After running this installer it is possible you will encounter an error running the program that has to do with versions of pytorch, if the environment already has a version installed. If the installer is ran in a clean python (3.8.8) install, it will most likely work. 
+
 ### CLI
 The model can be run in two different modes, an 'answering' mode and a 'generation' mode.
 
