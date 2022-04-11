@@ -3,7 +3,7 @@ if __name__ == "__main__":
     sys.path.append("..")
     
 from sentence_transformers import SentenceTransformer, util
-
+from util.nlp import edit_distance, rouge_l
 from inp_out.data_pipeline import DataManager
 from inp_out.io import IO
 # from pipeline import give_answer_to_question_pipeline
@@ -52,8 +52,8 @@ def evaluate_answering_pipeline():
                 result_objects["true_context_similarity_score"] = util.dot_score(embedding_creator.encode(
                     paragraphs_related_to_answers[idx]), embedding_creator.encode(result_objects["most_relevant_contexts"][0]))
                 
-                result_objects["true_answer_edit_distance"] = util.edit_distance(result_objects["translated_answer"], result_objects["true_answer"])
-                result_objects["true_answer_ROUGE_L"] = util.rouge_l(result_objects["translated_answer"], result_objects["true_answer"])
+                #result_objects["true_answer_edit_distance"] = edit_distance(result_objects["translated_answer"], result_objects["true_answer"])
+                result_objects["true_answer_ROUGE_L"] = rouge_l(result_objects["translated_answer"], result_objects["true_answer"])
 
                 data.add_qa_results(result_objects)
                 io.print_results(result_objects)
