@@ -1,5 +1,5 @@
 from inp_out.io import IO
-from installer.installer import install_required_packages
+from installer import install_required_packages
 from viewer import Viewer
 from util.logger import setup_logger
 

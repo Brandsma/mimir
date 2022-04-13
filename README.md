@@ -14,6 +14,8 @@ python installer.py
 ```
 After running this installer it is possible you will encounter an error running the program that has to do with versions of pytorch, if the environment already has a version installed. If the installer is ran in a clean python (3.8.8) install, it will most likely work. 
 
+When the model is run for QA with the provided dataset it should be run from a Linux environment. In Windows, loading the provided dataset gives an 'Python int too large to convert to C long' error, originating from one of the fields in the dataset.
+
 ### CLI
 The model can be run in two different modes, an 'answering' mode and a 'generation' mode.
 
